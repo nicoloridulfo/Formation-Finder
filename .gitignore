@@ -1,0 +1,7 @@
+Data/data/*
+*.pyc
+settings.json
+AllTickers.txt
+*.nbi
+*.nbc
+*.p

@@ -32,10 +32,15 @@ class DataManager:
         for ticker in tqdm(self.tickers):
            self.panel[ticker] = pd.read_csv(f"Data/data/{ticker}.csv", sep=',', header = 0)
 
-    def get(self, daysBack, daysHold):
-        datas = []
-        for ticker in self.panel.keys():
-            datas.append(self._dataDescriptor(self.panel[ticker], daysBack, daysHold))
+    def generateDescription(self, daysBack, daysHold, commission):
+        """
+        Returns a dictionary with {ticker:{OHLC:ndArray, profits:array}}
+        """
+        datas = {}
+        for ticker in tqdm(self.panel.keys()):
+            OHLC, profits = self._dataDescriptor(self.panel[ticker], daysBack, daysHold)
+            profits = profits-commission
+            datas[ticker] = {"OHLC":OHLC, "profits":profits}
         return datas
 
 

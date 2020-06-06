@@ -1,7 +1,7 @@
 import random
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
+#from Formations.Trading import *
 
 def randomMatrix(width = 1, height = 1):
     '''
@@ -23,13 +23,13 @@ class Formation:
 
         self.genes = []
         for _ in range(8 * (candles-1)**2 + 8*(candles-1)):
-            self.genes.append(random.choice([-1,0,1]))
+            self.genes.append(random.choice([-1,0,0,0,1]))
 
     def getGenes(self)->np.array:
         return np.array(self.genes)
     
     def __str__(self):
-        return f"[{self.nTrades}, {self.accumulated}]"
+        return str(self.__dict__)
 
 class Population:
     def __init__(self, size, candles):
@@ -40,18 +40,15 @@ class Population:
         for _ in range(size):
             self.population.append(Formation(candles))
     
-    def trade(self, stockdata, commission):
+    def setTrader(self, trader):
+        self.trader = trader
+
+    def trade(self):
+        if self.trader == None:
+            raise AttributeError("Trader has to be set before trading")
+
+        self.trader.trade(self.population)
         
-        for formation in tqdm(self.population):
-            if not hasattr(formation, "trades"):
-                formation.trades = []
-            for data, profits in stockdata:
-                assert len(data) == len(profits)
-
-                match = formation.getGenes()*data # matching
-                tradesTaken = profits[np.min(match, axis=1)>=0]
-
-                formation.trades  = np.append(formation.trades, tradesTaken)
         self.calculateStatistics()
 
     def calculateStatistics(self):
