@@ -1,73 +1,63 @@
-from typing import List, Dict
 import pandas as pd
 from tqdm import tqdm
-import os
-from pandas_datareader import data
 import numpy as np
+from numba import njit
 
-class DataManager:
+def generateDescription(df, daysBack, daysHold):
     '''
-    This object manages the data.
-    '''
-    def __init__(self, path:str, tickers:List[str]):
-        self.path = path
-        self.tickers = tickers
-        self.panel:Dict = {}
-
-        #self._download()
-        self._importData()
-
-    def _download(self):
-        for ticker in tqdm(self.tickers):
-            if ticker in os.listdir("data"): continue
-
-            try:
-                data.DataReader(ticker, "yahoo", start="1980-01-01").to_csv(f"Data/data/{ticker}.csv", sep=',')
-            except Exception as e:
-                print(e)
-                print(f"Could not download: {ticker}\n")
+    Generates the description for a dataframe
     
-    def _importData(self):
-        print("Loading data: ")
-        for ticker in tqdm(self.tickers):
-           self.panel[ticker] = pd.read_csv(f"Data/data/{ticker}.csv", sep=',', header = 0)
+    Returns:
+        numpy-ndarray with description and a numpy-array with the profits
+    '''
+    if isinstance(df, pd.DataFrame):
+        stockData = df[["Open", "High", "Low", "Close"]].to_numpy().copy()
+        return _generate(stockData, daysBack, daysHold)
+    elif isinstance(df, list):
+        accumulatedDesc = accumulatedProfit = None
+        for i, stock in tqdm(list(enumerate(df))):
+            stockData = stock[["Open", "High", "Low", "Close"]].to_numpy().copy()
+            if i == 0:
+                accumulatedDesc, accumulatedProfit = _generate(stockData, daysBack, daysHold)
+            else:
+                stockData = stock[["Open", "High", "Low", "Close"]].to_numpy().copy()
+                resDesc, resProfit = _generate(stockData, daysBack, daysHold)
 
-    def generateDescription(self, daysBack, daysHold, commission):
-        """
-        Returns a dictionary with {ticker:{OHLC:ndArray, profits:array}}
-        """
-        datas = {}
-        for ticker in tqdm(self.panel.keys()):
-            OHLC, profits = self._dataDescriptor(self.panel[ticker], daysBack, daysHold)
-            profits = profits-commission
-            datas[ticker] = {"OHLC":OHLC, "profits":profits}
-        return datas
+                accumulatedDesc = np.append(accumulatedDesc, resDesc, axis = 0)
+                accumulatedProfit = np.append(accumulatedProfit, resProfit)
+        return accumulatedDesc, accumulatedProfit
+@njit
+def _generate(stockData, nCandles, daysHold):
+    assert nCandles>=2
+    assert daysHold>=1
+    
+    '''
+    ## Let's say that the data is of 6 days, nCandles = 2 and dayshold = 2
+    #### XXXX
+    #### XXXX <-- Starts here
+    #### XXXX
+    #### XXXX <-- last possible purchase
+    #### XXXX
+    #### XXXX <-- Last sell here
 
+    => 3 description rows
+    '''
+    numDesc = 8 * (nCandles-1)**2 + 8*(nCandles-1)
+    lenDesc = len(stockData) - (nCandles-1) - daysHold
+    desc = np.zeros(shape=(lenDesc, numDesc))
+    profits = np.zeros(shape=(lenDesc,))
 
-    def _dataDescriptor(self, stockData:pd.DataFrame, daysBack = 2, daysHold = 1):
-        """
-        Converts a OHLC dataframe to the signals and profit
-        """
-        stockData = stockData[["Open", "High", "Low", "Close"]]
-        
-        stockData["Profit"] = stockData["Close"].pct_change(periods=daysHold).shift(-1*daysHold)+1
-        stockData=stockData.dropna() # Remove the last days where profit cant be calculated
+    for row in range(nCandles-1, len(stockData)-daysHold): # Day iterator
+        profits[row-(nCandles-1)] = stockData[row+daysHold][3] / stockData[row][3]
+        genomIndex = -1
+        for i in range(0, nCandles-1): # today's candle
+            for j in range(i+1, nCandles): # yesterday's candle
+                for home in range(4): #reverse of range(4) to get 3,2,1,0 since that is the order of the line
+                    for away in range(4):
+                        genomIndex+=1
 
-        descriptions = []
-        profits = []
-        for row in range(daysBack-1, len(stockData)): # Day iterator
+                        todayPrice = stockData[row-i][home]
+                        yesterdayPrice = stockData[row-j][away]
 
-            todaysDescription = []
-            for i in range(0, daysBack-1): # today's candle
-                for j in range(i+1, daysBack): # yesterday's candle
-                    genomIndex = -1
-                    for home in range(4): #reverse of range(4) to get 3,2,1,0 since that is the order of the line
-                        for away in range(4):
-                            genomIndex+=1
-
-                            todayPrice = stockData.iloc[row-i, home]
-                            yesterdayPrice = stockData.iloc[row-j, away]
-                            todaysDescription.append(1 if todayPrice>yesterdayPrice else -1)
-            descriptions.append(todaysDescription)
-            profits.append(stockData.iloc[row, stockData.shape[1]-1])
-        return (np.array(descriptions), np.array(profits))
+                        desc[row-(nCandles-1)][genomIndex] = 1 if todayPrice > yesterdayPrice else -1
+    return desc, profits
