@@ -13,7 +13,7 @@ class Formation:
 	'''
 	A formation
 	'''
-
+	geneChoice = [0]*5 + [1,-1]
 	def __init__(self, candles: int):
 
 		assert candles > 1, "Candles must be greater than 1"
@@ -22,7 +22,7 @@ class Formation:
 
 		self.genes = []
 		for _ in range(8 * (candles-1)**2 + 8*(candles-1)):
-			self.genes.append(random.choice([-1,0,0,0,1]))
+			self.genes.append(random.choice(self.geneChoice))
 
 	def getGenes(self)->np.array:
 		return np.array(self.genes)
@@ -39,11 +39,11 @@ class Population:
 		for _ in range(size):
 			self.population.append(Formation(candles))
 
-	def trade(self, descriptions, profits):
+	def trade(self, descriptions, profits, cost):
 		for formation in tqdm(self.population):
 			genes = formation.getGenes()
 			trades = _doTrade(formation.getGenes(), descriptions, profits)
-			formation.trades = np.array(trades)
+			formation.trades = np.array(trades) - cost
 		
 		self.calculateStatistics()
 
@@ -51,16 +51,18 @@ class Population:
 		for formation in self.population:
 			formation.nTrades = len(formation.trades)
 
+			formation.accumulated = 1
+			formation.winloose = 0
+			formation.std = 0
+			formation.average = 0
+			formation.sum = 0
+
 			if formation.nTrades>0:
 				formation.accumulated = np.product(formation.trades)
 				formation.winloose = len(formation.trades[formation.trades>1])/len(formation.trades)
 				formation.std = np.std(formation.trades)
 				formation.average = np.average(formation.trades)
 				formation.sum = np.sum(formation.trades-1)
-			else:
-				formation.accumulated = 1
-				formation.sum = 0
-				formation.winloose = formation.std = 0
 
 	def sortPop(self):
 		self.population.sort(key=lambda x: x.accumulated, reverse=True)
