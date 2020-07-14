@@ -2,6 +2,7 @@ Data/data/*
 *.pyc
 settings.json
 AllTickers.txt
+OMX-Tickers.txt
 *.nbi
 *.nbc
 *.p
