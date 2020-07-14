@@ -11,6 +11,7 @@ This is currently in development, more to come!
 For now, here is my previous (failed) attempt: https://github.com/nicoloridulfo/FormationFinder. The README file is extensive and explains in detail how this works.
 
 # Todos
-* Create data-object
-* Create tests for Trading.py
+* ### Write tests:
+    * Description generation
+    * Trading
 
