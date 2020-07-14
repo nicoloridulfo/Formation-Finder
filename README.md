@@ -15,3 +15,6 @@ For now, here is my previous (failed) attempt: https://github.com/nicoloridulfo/
     * Description generation
     * Trading
 
+### To run the tests:
+In the projects root directory, run: <br>
+`python -m unittest`
