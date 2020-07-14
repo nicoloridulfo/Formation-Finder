@@ -35,7 +35,7 @@ class DescriptionGenerationTest(unittest.TestCase):
                     6,7,3,4
                     2,9,1,8
                     0,0,0,16
-                """
+                """ #The last row of the data is to test the profit calculation
         expectedResult = [-1, -1, -1, -1, 1, 1, 1, 1, -1, -1, -1, -1, 1, 1, 1, 1]
 
         df:pd.DataFrame = pd.read_csv(StringIO(testData), sep=',', header=0)
@@ -50,6 +50,82 @@ class DescriptionGenerationTest(unittest.TestCase):
 
         # Check that the profit 16 / 8 = 2
         self.assertEqual(profits[0], 2)
+    
+    def test_BearishHarami(self):
+        # For illustraction, see images/BearishHarami.jpg
+        testData="""Open,High,Low,Close
+                    7,8,1,2
+                    4,12,3,11
+                    9,10,5,6
+                    0,0,0,12
+                    """
+        # Manually doing the description: 1 = higher, 0 = lower -> converted to 1 and -1 respectively
+        # expectedResult=[1010 1010 1010 1010
+        #                 1111 1111 0011 0011
+        #                 0011 1111 0011 1111]
+        expectedResult=[1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,1,1,1,1,1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,1,1,1,1,-1,-1,1,1,1,1,1,1]
+        
+        df:pd.DataFrame = pd.read_csv(StringIO(testData), sep=',', header=0)
+        desc, profits = generateDescription(df, 3, 1)
+
+        #Check that they are the same length
+        self.assertEqual(len(expectedResult), len(desc[0]))
+
+        #Check so that the elements in the lists are the same length
+        for i, (expected, actual) in enumerate(zip(expectedResult, desc[0])):
+            self.assertEqual(expected, actual, f"Elements at position {i} do not match: Expected {expected} and actual {actual}")
+
+        # Check that the profit 12 / 6 = 2
+        self.assertEqual(profits[0], 2)
+    
+    def test_GeneratedLength(self):
+        testData = """Date,High,Low,Open,Close,Volume,Adj Close
+            2000-01-03,32.780799865722656,31.44930076599121,31.702899932861328,32.590599060058594,3285528.0,8.712677001953125
+            2000-01-04,32.27349853515625,31.06879997253418,32.27349853515625,31.132200241088867,7499032.0,8.322792053222656
+            2000-01-05,30.941999435424805,30.18120002746582,30.941999435424805,30.561599731445312,5184511.0,8.17025089263916
+            2000-01-06,13.638899803161621,13.638899803161621,13.638899803161621,40.91659927368164,0.0,10.93852710723877
+            2000-01-07,32.27349853515625,30.434799194335938,30.561599731445312,31.829700469970703,34270998.0,8.509261131286621
+            2000-01-10,33.35139846801758,31.576099395751953,31.576099395751953,32.590599060058594,11466146.0,8.712677001953125
+            2000-01-11,32.97100067138672,31.956499099731445,32.97100067138672,32.33689880371094,18261378.0,8.644850730895996
+            2000-01-12,32.65399932861328,31.702899932861328,31.829700469970703,32.21009826660156,6214946.0,8.610955238342285
+            2000-01-13,32.71739959716797,32.08330154418945,32.33689880371094,32.590599060058594,9968933.0,8.712677001953125
+            2000-01-14,32.97100067138672,31.89310073852539,32.71739959716797,32.71739959716797,9673455.0,8.746574401855469
+            2000-01-17,33.097801208496094,32.33689880371094,32.46379852294922,32.97100067138672,6870083.0,8.814370155334473
+            2000-01-18,33.16120147705078,32.71739959716797,33.22460174560547,32.97100067138672,6901902.0,8.814370155334473
+            2000-01-19,32.97100067138672,31.829700469970703,32.08330154418945,32.71739959716797,8467295.0,8.746574401855469
+            2000-01-20,32.844200134277344,31.702899932861328,31.702899932861328,32.33689880371094,9245403.0,8.644850730895996
+            2000-01-21,32.527198791503906,31.576099395751953,32.33689880371094,31.956499099731445,9230002.0,8.543159484863281
+            2000-01-24,32.08330154418945,31.06879997253418,32.08330154418945,31.19569969177246,5365394.0,8.339768409729004
+            2000-01-25,31.19569969177246,29.230100631713867,31.19569969177246,29.483699798583984,9641045.0,7.882087230682373
+            2000-01-26,31.06879997253418,29.61050033569336,29.80069923400879,30.434799194335938,12661921.0,8.1363525390625
+            2000-01-27,30.815200805664062,30.05430030822754,30.561599731445312,30.371400833129883,5863590.0,8.119404792785645
+            2000-01-28,30.941999435424805,29.16670036315918,30.941999435424805,29.483699798583984,4737557.0,7.882087230682373
+            """
+        df:pd.DataFrame = pd.read_csv(StringIO(testData), sep=',', header=0)
+        # Number of days = 20
+        # Given daysHold = 0:
+        #   If daysBack = 2 -> removes the first day from the data. Describes and returns 19 rows.
+        #   If daysBack = 3 -> removes the first two days from the data. Describes and returns 18 rows.
+
+        # Given daysHold = 1:
+        #   If daysBack = 2 -> removes the first and last day from the data. Describes and returns 18 rows.
+        #   If daysBack = 3 -> removes the first two and last one days from the data. Describes and returns 17 rows.
+        expected = {}
+        # Key = (daysBack, DaysHold)
+        # Value = number of rows
+        expected[(2, 0)] = 19
+        expected[(3, 0)] = 18
+        expected[(2, 1)] = 18
+        expected[(3, 1)] = 17
+        for daysBack, daysHold in expected:
+            desc, profits = generateDescription(df, daysBack, daysHold)
+            
+            # Assert that the length is equal to the expected length
+            self.assertEqual(len(desc), expected[(daysBack, daysHold)])
+
+        
+
+        
 
 
 # to run: "python -m unittest test/Test_Data.py"
