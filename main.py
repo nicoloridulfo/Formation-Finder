@@ -12,27 +12,38 @@ if __name__ == "__main__":
     commission = 0.005
 
     #tickers = ["SENS.ST", "ATCO-B.ST", "GETI-B.ST","AF-B.ST"]
-    
-    if os.path.isfile("stockdata.p"):
-        desc, profits = pickle.load(open("stockdata.p", "rb"))
-    else:
-        tickers = [ticker.replace(".csv", "") for ticker in os.listdir("Data/data/")]
-        tickers = tickers[:int(len(tickers)/2)]
-        stocksDF = [pd.read_csv(f"Data/data/{stock}.csv", sep=',', header = 0) for stock in tickers]
-        desc, profits = generateDescription(stocksDF, daysBack, daysHold)
-        pickle.dump((desc, profits), open("stockdata.p", "wb"))
+    tickers = []
+    #tickers = [ticker.replace(".csv", "") for ticker in os.listdir("Data/data/")]
+    #tickers = tickers[:int(len(tickers)/5)]
+    with open("Data/OMX-Tickers.txt", "r") as f:
+        tickers = f.read().split("\n")
+    print(tickers)
+    print(tickers[0:-2])
+    stocksDF = [pd.read_csv(f"Data/data/{stock}.csv", sep=',', header = 0) for stock in tickers[0:-2]]
+    desc, profits = generateDescription(stocksDF, daysBack, daysHold)
 
     population = Population(40**2, daysBack)
-    for n in range(5):
-        population.trade(desc, profits)
+    print("Training:")
+    for n in range(10):
+        print("Generation:", n+1)
+        population.trade(desc, profits, 0.005)
         population.sortPop()
         for n in range(5):
-            print(population.population[n])
+            f = population.population[n]
+            print("n: ", f.nTrades, "acc: ", f.accumulated,"avg: ", f.average)
+
         population.breed()
 
-    population.trade(desc, profits)
+    print(tickers)
+    print(tickers[-2])
+    stocksDF = [pd.read_csv(f"Data/data/{stock}.csv", sep=',', header = 0) for stock in tickers[-2:]]
+    desc, profits = generateDescription(stocksDF, daysBack, daysHold)
+    print("Validating:")
+    population.trade(desc, profits, 0.005)
     population.sortPop()
-    print(population.population[0].__dict__)
+    for n in range(5):
+        f = population.population[n]
+        print("n: ", f.nTrades, "acc: ", f.accumulated,"avg: ", f.average)
         
 
 

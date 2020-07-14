@@ -1,9 +1,10 @@
+from typing import Dict
 from pandas_datareader import data
 import pandas as pd
 import os.path
 import os
 from tqdm import tqdm
-panel = {}
+panel:Dict[str, pd.DataFrame] = {}
 
 # for fileName in tqdm(os.listdir("data")):
 #     panel[fileName.replace(".csv","")] = pd.read_csv(f"data/{fileName}", sep=',', header = 0)

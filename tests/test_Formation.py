@@ -1,5 +1,7 @@
 import unittest
-from Formations import *
+from FormationFinder.Formations import *
+from FormationFinder.Data import *
+
 import numpy as np
 
 class FormationTest(unittest.TestCase):
@@ -27,7 +29,7 @@ class PopulationTest(unittest.TestCase):
         data = [[1]*16]*2
         profit = [42,43]
 
-        population.trade(np.reshape(np.array(data), (2,16)), np.array(profit))
+        population.trade(np.reshape(np.array(data), (2,16)), np.array(profit),0)
         tradesTaken = population.population[0].trades
         self.assertEqual(len(profit), len(tradesTaken), "Should be the name number of trades")
         for n in range(len(data)):
@@ -38,6 +40,6 @@ class PopulationTest(unittest.TestCase):
         population.breed()
         self.assertEqual(len(population.population), 100)
 
-#to run: "python -m unittest tests/FormationTest.py"
+#to run: "python -m unittest tests/unit/FormationTest.py"
 if __name__ == '__main__':
     unittest.main()

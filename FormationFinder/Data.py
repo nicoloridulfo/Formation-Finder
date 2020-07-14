@@ -1,21 +1,25 @@
+from typing import Union, List
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
 from numba import njit
 
-def generateDescription(df, daysBack, daysHold):
+def generateDescription(data: Union[pd.DataFrame, List[pd.DataFrame]],
+                        daysBack: int,
+                        daysHold: int):
     '''
     Generates the description for a dataframe
     
     Returns:
         numpy-ndarray with description and a numpy-array with the profits
     '''
-    if isinstance(df, pd.DataFrame):
-        stockData = df[["Open", "High", "Low", "Close"]].to_numpy().copy()
+    if isinstance(data, pd.DataFrame):
+        stockData = data[["Open", "High", "Low", "Close"]].to_numpy().copy()
         return _generate(stockData, daysBack, daysHold)
-    elif isinstance(df, list):
+        
+    elif isinstance(data, list):
         accumulatedDesc = accumulatedProfit = None
-        for i, stock in tqdm(list(enumerate(df))):
+        for i, stock in tqdm(list(enumerate(data))):
             stockData = stock[["Open", "High", "Low", "Close"]].to_numpy().copy()
             if i == 0:
                 accumulatedDesc, accumulatedProfit = _generate(stockData, daysBack, daysHold)
@@ -29,7 +33,6 @@ def generateDescription(df, daysBack, daysHold):
 @njit
 def _generate(stockData, nCandles, daysHold):
     assert nCandles>=2
-    assert daysHold>=1
     
     '''
     ## Let's say that the data is of 6 days, nCandles = 2 and dayshold = 2
