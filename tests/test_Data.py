@@ -122,12 +122,3 @@ class DescriptionGenerationTest(unittest.TestCase):
             
             # Assert that the length is equal to the expected length
             self.assertEqual(len(desc), expected[(daysBack, daysHold)])
-
-        
-
-        
-
-
-# to run: "python -m unittest test/Test_Data.py"
-if __name__ == '__main__':
-    unittest.main()

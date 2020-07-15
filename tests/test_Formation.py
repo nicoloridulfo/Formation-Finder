@@ -39,7 +39,3 @@ class PopulationTest(unittest.TestCase):
         population = Population(100,2)
         population.breed()
         self.assertEqual(len(population.population), 100)
-
-#to run: "python -m unittest tests/unit/FormationTest.py"
-if __name__ == '__main__':
-    unittest.main()
