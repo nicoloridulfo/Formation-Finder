@@ -4,7 +4,7 @@ from tqdm import tqdm
 import numpy as np
 from numba import njit
 
-def generateDescription(data: Union[pd.DataFrame, List[pd.DataFrame]],
+def generateDescription(data: Union[pd.DataFrame, List[pd.DataFrame], np.ndarray, List[np.ndarray]],
                         daysBack: int,
                         daysHold: int):
     '''
@@ -13,25 +13,33 @@ def generateDescription(data: Union[pd.DataFrame, List[pd.DataFrame]],
     Returns:
         numpy-ndarray with description and a numpy-array with the profits
     '''
-    if isinstance(data, pd.DataFrame):
-        stockData = data[["Open", "High", "Low", "Close"]].to_numpy().copy()
-        return _generate(stockData, daysBack, daysHold)
-        
-    elif isinstance(data, list):
+
+    def dataframeNumpyTranslation(oneStock):
+        if isinstance(oneStock, pd.DataFrame):
+            return oneStock[["Open", "High", "Low", "Close"]].to_numpy().copy()
+        if isinstance(oneStock, np.ndarray):
+            s = np.float64(oneStock[:,1:5])
+            return s
+    if isinstance(data, list):
         accumulatedDesc = accumulatedProfit = None
         for i, stock in tqdm(list(enumerate(data))):
-            stockData = stock[["Open", "High", "Low", "Close"]].to_numpy().copy()
+            stock = dataframeNumpyTranslation(stock)
+
             if i == 0:
-                accumulatedDesc, accumulatedProfit = _generate(stockData, daysBack, daysHold)
+                accumulatedDesc, accumulatedProfit = _generate(stock, daysBack, daysHold)
             else:
-                stockData = stock[["Open", "High", "Low", "Close"]].to_numpy().copy()
-                resDesc, resProfit = _generate(stockData, daysBack, daysHold)
+                stock = dataframeNumpyTranslation(stock)
+                resDesc, resProfit = _generate(stock, daysBack, daysHold)
 
                 accumulatedDesc = np.append(accumulatedDesc, resDesc, axis = 0)
                 accumulatedProfit = np.append(accumulatedProfit, resProfit)
         return accumulatedDesc, accumulatedProfit
+    else:
+        return _generate(dataframeNumpyTranslation(data), daysBack, daysHold)
+
+
 @njit
-def _generate(stockData, nCandles, daysHold):
+def _generate(stockData:np.ndarray, nCandles, daysHold):
     assert nCandles>=2
     
     '''
